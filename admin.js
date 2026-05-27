@@ -1,6 +1,7 @@
 const translations = {
 	th: {
 		title: 'Admin - Dashboard',
+		logout: 'ออกจากระบบ',
 		menuTitle: 'จัดการเมนู',
 		available: 'พร้อมขาย',
 		soldOut: 'แจ้งว่าหมด',
@@ -52,7 +53,8 @@ const el = {
 	saveBaseUrlBtn: document.getElementById('save-base-url'),
 	qrBaseUrlHint: document.getElementById('qr-base-url-hint'),
 	tableQrList: document.getElementById('table-qr-list'),
-	saveAnnouncementBtn: document.getElementById('save-announcement')
+	saveAnnouncementBtn: document.getElementById('save-announcement'),
+	logoutButton: document.getElementById('logout-button')
 };
 
 function t(key){
@@ -82,6 +84,7 @@ function applyLanguage(){
 	if(el.qrBaseUrlLabel) el.qrBaseUrlLabel.textContent = t('qrBaseUrlLabel');
 	if(el.announcementInput) el.announcementInput.placeholder = t('announcementPlaceholder');
 	if(el.saveAnnouncementBtn) el.saveAnnouncementBtn.textContent = t('saveAnnouncement');
+	if(el.logoutButton) el.logoutButton.textContent = t('logout');
 	if(el.publicBaseUrlInput) el.publicBaseUrlInput.placeholder = t('qrBaseUrlPlaceholder');
 	if(el.saveBaseUrlBtn) el.saveBaseUrlBtn.textContent = t('saveBaseUrl');
 }
@@ -270,6 +273,11 @@ if(el.publicBaseUrlInput){
 			event.preventDefault();
 			el.saveBaseUrlBtn?.click();
 		}
+	});
+}
+if(el.logoutButton){
+	el.logoutButton.addEventListener('click', () => {
+		window.AppAuth.logout();
 	});
 }
 
