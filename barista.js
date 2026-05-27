@@ -5,6 +5,7 @@ const translations = {
 	th: {
 		title: 'Barista - Queue',
 		subtitle: 'ดูคิวออเดอร์และการเรียกพนักงานแบบเรียลไทม์',
+		logout: 'ออกจากระบบ',
 		ordersTitle: 'คิวออเดอร์',
 		callsTitle: 'เรียกพนักงาน',
 		orderLabel: 'ออเดอร์',
@@ -20,7 +21,7 @@ const translations = {
 		emptyOrders: 'ยังไม่มีออเดอร์',
 		emptyOrdersDesc: 'เมื่อมีลูกค้าสั่งซื้อ คิวออเดอร์จะขึ้นที่หน้านี้ทันที',
 		emptyCalls: 'ยังไม่มีการเรียกพนักงาน',
-		emptyCallsDesc: 'เมื่อมีลูกค้าเรียกพนักงาน รายการจะแสดงที่หน้านี้',
+		emptyCallsDesc: 'เมื่อลูกค้าเรียกพนักงาน รายการจะแสดงที่หน้านี้',
 		noteLabel: 'หมายเหตุ',
 		totalLabel: 'รวม'
 	}
@@ -32,7 +33,8 @@ const el = {
 	ordersTitle: document.getElementById('orders-title'),
 	callsTitle: document.getElementById('calls-title'),
 	ordersWrap: document.getElementById('orders'),
-	callsWrap: document.getElementById('calls')
+	callsWrap: document.getElementById('calls'),
+	logoutButton: document.getElementById('logout-button')
 };
 
 function t(key){
@@ -46,10 +48,35 @@ function applyLanguage(){
 	if(el.baristaSubtitle) el.baristaSubtitle.textContent = t('subtitle');
 	if(el.ordersTitle) el.ordersTitle.textContent = t('ordersTitle');
 	if(el.callsTitle) el.callsTitle.textContent = t('callsTitle');
+	if(el.logoutButton) el.logoutButton.textContent = t('logout');
 }
 
 function formatTime(ts){
 	return new Date(ts).toLocaleString('th-TH');
+}
+
+function createThumb(name){
+	const thumbLabel = (name || '').split(' ')[0].slice(0, 12) || 'Menu';
+	const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><rect rx='20' width='120' height='120' fill='%2325201d'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='18' fill='%23d4b59d' font-family='sans-serif'>${thumbLabel}</text></svg>`;
+	return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+function getOrderItemImage(item){
+	const itemId = Number(item?.id);
+	if(Number.isFinite(itemId) && itemId > 0){
+		return `${itemId}.jpg`;
+	}
+	return createThumb(item?.name || 'Menu');
+}
+
+function attachOrderImageFallbacks(root){
+	if(!root) return;
+	root.querySelectorAll('img[data-fallback]').forEach((image) => {
+		image.onerror = () => {
+			image.onerror = null;
+			image.src = image.dataset.fallback || createThumb(image.alt || 'Menu');
+		};
+	});
 }
 
 function playBeep(){
@@ -111,7 +138,24 @@ function renderOrders(){
 				<span>${order.items.length} ${t('itemsLabel')}</span>
 			</div>
 			<div class="order-items">
-				${order.items.map(item => `<div class="order-item"><span>${item.name}</span><span>x${item.qty}</span></div>`).join('')}
+				${order.items.map(item => {
+					const fallbackImage = createThumb(item.name);
+					const imageSrc = getOrderItemImage(item);
+					return `
+						<div class="order-item">
+							<div class="order-item-main">
+								<div class="order-item-thumb">
+									<img src="${imageSrc}" alt="${item.name}" data-fallback="${fallbackImage}" loading="lazy">
+								</div>
+								<div class="order-item-copy">
+									<span class="order-item-name">${item.name}</span>
+									<span class="order-item-price">฿${item.price}</span>
+								</div>
+							</div>
+							<span class="order-item-qty">x${item.qty}</span>
+						</div>
+					`;
+				}).join('')}
 				<div class="order-note"><strong>${t('noteLabel')}</strong><span>${order.note || '-'}</span></div>
 				<div class="order-total"><strong>${t('totalLabel')}</strong><span>${order.total}</span></div>
 			</div>
@@ -124,6 +168,7 @@ function renderOrders(){
 		div.querySelector('.toggle').addEventListener('click', () => toggleStatus(order.docId, order.status));
 		div.querySelector('.delete').addEventListener('click', () => deleteOrder(order.docId));
 	});
+	attachOrderImageFallbacks(el.ordersWrap);
 }
 
 function renderCalls(){
@@ -203,6 +248,12 @@ function setupListeners(){
 			playBeep();
 			await markDocsRead('calls', unreadIds);
 		}
+	});
+}
+
+if(el.logoutButton){
+	el.logoutButton.addEventListener('click', () => {
+		window.AppAuth.logout();
 	});
 }
 

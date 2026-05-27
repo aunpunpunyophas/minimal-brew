@@ -190,6 +190,21 @@ function createThumb(name){
 	return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
 
+function getItemImageSrc(item, fallbackName){
+	const fallback = createThumb(fallbackName);
+	return window.MenuData.getItemImage(item) || fallback;
+}
+
+function attachImageFallbacks(root){
+	if(!root) return;
+	root.querySelectorAll('img[data-fallback]').forEach((image) => {
+		image.onerror = () => {
+			image.onerror = null;
+			image.src = image.dataset.fallback || createThumb(image.alt || 'Menu');
+		};
+	});
+}
+
 function renderCategories(){
 	el.categories.innerHTML = '';
 	categories.forEach(cat => {
@@ -235,9 +250,11 @@ function renderMenu(){
 		const primaryName = getItemName(item);
 		const secondaryName = getSecondaryName(item);
 		const detail = [secondaryName, tCat(item.category)].filter(Boolean).join(' • ');
+		const fallbackImage = createThumb(primaryName);
+		const imageSrc = getItemImageSrc(item, primaryName);
 		return `
 			<article class="card reveal-item ${item.sold ? 'sold' : ''}" data-id="${item.id}" style="position:relative">
-				<div class="thumb"><img src="${createThumb(primaryName)}" alt="${primaryName}"></div>
+				<div class="thumb"><img src="${imageSrc}" alt="${primaryName}" data-fallback="${fallbackImage}" loading="lazy"></div>
 				<div class="meta">
 					<h3 class="title">${primaryName}</h3>
 					<p class="desc">${detail}</p>
@@ -254,6 +271,7 @@ function renderMenu(){
 	el.menuList.querySelectorAll('.add-btn').forEach(button => {
 		button.addEventListener('click', () => addToCart(Number(button.dataset.id)));
 	});
+	attachImageFallbacks(el.menuList);
 	if(items.length) observeRevealCards();
 }
 
@@ -325,9 +343,11 @@ function renderCartItems(){
 
 	el.cartItemsWrap.innerHTML = state.lines.map(line => {
 		const lineTotal = line.price * line.qty;
+		const fallbackImage = createThumb(line.name);
+		const imageSrc = getItemImageSrc(line, line.name);
 		return `
 			<div class="cart-item" data-line="${line.lineId}">
-				<div class="thumb"><img src="${createThumb(line.name)}" alt="${line.name}"></div>
+				<div class="thumb"><img src="${imageSrc}" alt="${line.name}" data-fallback="${fallbackImage}" loading="lazy"></div>
 				<div class="meta">
 					<p class="name">${line.name}</p>
 					<p class="sub">${t('priceLabel')} ฿${line.price}</p>
@@ -346,6 +366,7 @@ function renderCartItems(){
 
 	const total = state.lines.reduce((sum, line) => sum + line.price * line.qty, 0);
 	el.cartTotal.textContent = `฿${total}`;
+	attachImageFallbacks(el.cartItemsWrap);
 	el.cartItemsWrap.querySelectorAll('.inc').forEach(button => button.addEventListener('click', () => changeLineQty(button.dataset.line, 1)));
 	el.cartItemsWrap.querySelectorAll('.dec').forEach(button => button.addEventListener('click', () => changeLineQty(button.dataset.line, -1)));
 }
