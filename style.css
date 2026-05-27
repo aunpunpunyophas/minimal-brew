@@ -134,7 +134,7 @@ button, input, textarea{font: inherit;transition:transform .22s ease,background 
 /* note area */
 .note-area{padding:10px}
 .note-area label{display:block;margin-bottom:8px;color:var(--muted);font-size:0.98rem}
-.note-area textarea{width:100%;min-height:72px;border-radius:16px;border:1px solid var(--input-border);padding:12px;background:var(--input-bg);color:var(--text);resize:vertical}
+.note-area textarea{width:100%;height:96px;min-height:96px;max-height:140px;border-radius:16px;border:1px solid var(--input-border);padding:12px;background:var(--input-bg);color:var(--text);line-height:1.5;resize:none}
 .sheet-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 8px;border-top:1px solid var(--border);margin-top:10px}
 .sheet-actions{display:flex;gap:10px;flex-wrap:wrap}
 .clear-btn{background:var(--surface);border:1px solid var(--input-border);padding:10px 12px;border-radius:14px;color:var(--text)}

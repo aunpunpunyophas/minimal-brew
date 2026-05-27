@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -10,28 +10,38 @@
   <main class="auth-wrap">
     <section class="auth-card">
       <div class="auth-head">
-        <p class="auth-kicker">Minimal Brew</p>
-        <h1 id="login-title">เข้าสู่ระบบ</h1>
-        <p id="login-subtitle" class="page-subtitle">สำหรับหน้าแอดมินและหน้าบาริสต้า</p>
+        <h1 id="login-title">Login Form</h1>
+        <p id="login-subtitle" class="page-subtitle">Admin and Barista access</p>
       </div>
 
-      <p id="role-hint" class="panel-hint"></p>
+      <div class="auth-form-panel">
+        <p id="role-hint" class="panel-hint"></p>
 
-      <form id="login-form" class="auth-form">
-        <label for="username" id="username-label">ชื่อผู้ใช้</label>
-        <input id="username" class="panel-input" type="text" autocomplete="username">
+        <form id="login-form" class="auth-form">
+          <label for="username" id="username-label" class="sr-only">Username</label>
+          <div class="auth-input-pill">
+            <span class="auth-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5zm2.1-.5L12 11.3 17.9 7zM18 8.4l-5.4 3.9a1 1 0 0 1-1.2 0L6 8.4v8.1a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5z"/>
+              </svg>
+            </span>
+            <input id="username" class="auth-input" type="text" autocomplete="username">
+          </div>
 
-        <label for="password" id="password-label">รหัสผ่าน</label>
-        <input id="password" class="panel-input" type="password" autocomplete="current-password">
+          <label for="password" id="password-label" class="sr-only">Password</label>
+          <div class="auth-input-pill">
+            <span class="auth-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M12 2a4 4 0 0 1 4 4v2h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h1V6a4 4 0 0 1 4-4m2 6V6a2 2 0 1 0-4 0v2zm-2 4a1.5 1.5 0 0 1 .75 2.8V17a.75.75 0 0 1-1.5 0v-2.2A1.5 1.5 0 0 1 12 12"/>
+              </svg>
+            </span>
+            <input id="password" class="auth-input" type="password" autocomplete="current-password">
+          </div>
 
-        <button id="login-button" class="auth-submit" type="submit">เข้าสู่ระบบ</button>
-      </form>
+          <button id="login-button" class="auth-submit" type="submit">SIGN IN</button>
+        </form>
 
-      <p id="login-message" class="auth-message" hidden></p>
-
-      <div id="session-box" class="auth-session" hidden>
-        <p id="session-text" class="panel-hint"></p>
-        <button id="logout-button" type="button">ออกจากระบบ</button>
+        <p id="login-message" class="auth-message" hidden></p>
       </div>
     </section>
   </main>

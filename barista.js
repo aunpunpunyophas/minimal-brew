@@ -5,7 +5,6 @@ const translations = {
 	th: {
 		title: 'Barista - Queue',
 		subtitle: 'ดูคิวออเดอร์และการเรียกพนักงานแบบเรียลไทม์',
-		logout: 'ออกจากระบบ',
 		ordersTitle: 'คิวออเดอร์',
 		callsTitle: 'เรียกพนักงาน',
 		orderLabel: 'ออเดอร์',
@@ -30,7 +29,6 @@ const translations = {
 const el = {
 	baristaTitle: document.getElementById('barista-title'),
 	baristaSubtitle: document.getElementById('barista-subtitle'),
-	logoutButton: document.getElementById('logout-button'),
 	ordersTitle: document.getElementById('orders-title'),
 	callsTitle: document.getElementById('calls-title'),
 	ordersWrap: document.getElementById('orders'),
@@ -46,7 +44,6 @@ function applyLanguage(){
 	document.title = t('title');
 	if(el.baristaTitle) el.baristaTitle.textContent = t('title');
 	if(el.baristaSubtitle) el.baristaSubtitle.textContent = t('subtitle');
-	if(el.logoutButton) el.logoutButton.textContent = t('logout');
 	if(el.ordersTitle) el.ordersTitle.textContent = t('ordersTitle');
 	if(el.callsTitle) el.callsTitle.textContent = t('callsTitle');
 }
@@ -206,12 +203,6 @@ function setupListeners(){
 			playBeep();
 			await markDocsRead('calls', unreadIds);
 		}
-	});
-}
-
-if(el.logoutButton){
-	el.logoutButton.addEventListener('click', () => {
-		window.AppAuth.logout();
 	});
 }
 

@@ -1,16 +1,16 @@
 const translations = {
-	th: {
-		title: 'เข้าสู่ระบบ',
-		subtitle: 'สำหรับหน้าแอดมินและหน้าบาริสต้า',
-		username: 'ชื่อผู้ใช้',
-		password: 'รหัสผ่าน',
-		login: 'เข้าสู่ระบบ',
-		logout: 'ออกจากระบบ',
-		roleHintAdmin: 'กรุณาเข้าสู่ระบบสำหรับหน้า Admin',
-		roleHintBarista: 'กรุณาเข้าสู่ระบบสำหรับหน้า Barista',
-		roleHintDefault: 'ใช้บัญชีที่ได้รับเพื่อเข้าใช้งานตามหน้าที่',
-		currentSession: 'ตอนนี้กำลังเข้าสู่ระบบเป็น {role} ({username})',
-		invalidCredentials: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'
+	en: {
+		title: 'Login Form',
+		subtitle: 'Admin and Barista access',
+		username: 'Username',
+		password: 'Password',
+		usernamePlaceholder: 'username',
+		passwordPlaceholder: 'password',
+		login: 'SIGN IN',
+		roleHintAdmin: 'Login for Admin access',
+		roleHintBarista: 'Login for Barista access',
+		roleHintDefault: 'Use your assigned account to continue',
+		invalidCredentials: 'Incorrect username or password'
 	}
 };
 
@@ -24,14 +24,11 @@ const el = {
 	username: document.getElementById('username'),
 	password: document.getElementById('password'),
 	loginButton: document.getElementById('login-button'),
-	message: document.getElementById('login-message'),
-	sessionBox: document.getElementById('session-box'),
-	sessionText: document.getElementById('session-text'),
-	logoutButton: document.getElementById('logout-button')
+	message: document.getElementById('login-message')
 };
 
 function t(key){
-	return translations.th?.[key] ?? key;
+	return translations.en?.[key] ?? key;
 }
 
 function setMessage(text){
@@ -41,14 +38,15 @@ function setMessage(text){
 }
 
 function applyLanguage(){
-	document.documentElement.lang = 'th';
+	document.documentElement.lang = 'en';
 	document.title = t('title');
 	if(el.title) el.title.textContent = t('title');
 	if(el.subtitle) el.subtitle.textContent = t('subtitle');
 	if(el.usernameLabel) el.usernameLabel.textContent = t('username');
 	if(el.passwordLabel) el.passwordLabel.textContent = t('password');
+	if(el.username) el.username.placeholder = t('usernamePlaceholder');
+	if(el.password) el.password.placeholder = t('passwordPlaceholder');
 	if(el.loginButton) el.loginButton.textContent = t('login');
-	if(el.logoutButton) el.logoutButton.textContent = t('logout');
 }
 
 function renderRoleHint(){
@@ -65,18 +63,19 @@ function renderRoleHint(){
 	el.roleHint.textContent = t('roleHintDefault');
 }
 
-function renderSessionState(){
+function redirectIfAuthenticated(){
 	const session = window.AppAuth.getSession();
-	if(!el.sessionBox || !el.sessionText) return;
 	if(!session){
-		el.sessionBox.hidden = true;
-		return;
+		return false;
 	}
 
-	el.sessionBox.hidden = false;
-	el.sessionText.textContent = t('currentSession')
-		.replace('{role}', session.label || session.role)
-		.replace('{username}', session.username);
+	const requestedRole = window.AppAuth.getRequestedRole();
+	if(requestedRole && requestedRole !== session.role){
+		return false;
+	}
+
+	window.location.replace(window.AppAuth.getRouteForRole(session.role));
+	return true;
 }
 
 if(el.form){
@@ -94,13 +93,7 @@ if(el.form){
 		window.location.replace(result.redirect);
 	});
 }
-
-if(el.logoutButton){
-	el.logoutButton.addEventListener('click', () => {
-		window.AppAuth.logout();
-	});
+if(!redirectIfAuthenticated()){
+	applyLanguage();
+	renderRoleHint();
 }
-
-applyLanguage();
-renderRoleHint();
-renderSessionState();
