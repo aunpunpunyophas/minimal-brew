@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin - Dashboard</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="admin-wrap">
+    <header class="admin-header">
+      <div class="admin-top">
+        <h1 id="admin-title">Admin - Dashboard</h1>
+        <p class="page-subtitle">ดูแลประกาศ, QR โต๊ะ, และสถานะเมนูของร้าน</p>
+      </div>
+    </header>
+
+    <section id="announcement-section" class="announcement-panel">
+      <h2 id="announcement-title">Announcement</h2>
+      <div id="announcement" class="announcement"></div>
+      <div class="panel-action-row">
+        <input id="announcement-input" class="panel-input" type="text">
+        <button id="save-announcement">บันทึก</button>
+      </div>
+    </section>
+
+    <section class="qr-panel">
+      <h2 id="qr-title">QR โต๊ะ</h2>
+      <p id="qr-desc" class="panel-desc">สแกนเพื่อเปิดเมนูพร้อมระบุเลขโต๊ะอัตโนมัติ</p>
+      <div class="qr-config">
+        <label id="qr-base-url-label" for="public-base-url">ลิงก์หน้าเมนู</label>
+        <div class="qr-config-row">
+          <input id="public-base-url" class="panel-input" type="text" placeholder="https://your-domain.com/index.html">
+          <button id="save-base-url">บันทึกลิงก์</button>
+        </div>
+      </div>
+      <p id="qr-base-url-hint" class="panel-hint"></p>
+      <div id="table-qr-list" class="table-qr-list"></div>
+    </section>
+
+    <section id="menu-col" class="menu-col">
+      <h2 id="menu-title">Menu Management</h2>
+      <div id="menu-list-admin" class="menu-list-admin"></div>
+    </section>
+  </main>
+
+  <script src="menu-data.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

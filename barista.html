@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Barista - Queue</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="admin-wrap">
+    <header class="admin-header">
+      <div class="admin-top">
+        <h1 id="barista-title">Barista - Queue</h1>
+        <p id="barista-subtitle" class="page-subtitle">ดูคิวออเดอร์และการเรียกพนักงานแบบเรียลไทม์</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section id="orders-col" class="orders-col">
+        <h2 id="orders-title">คิวออเดอร์</h2>
+        <div id="orders" class="orders"></div>
+      </section>
+
+      <section id="calls-col" class="calls-col">
+        <h2 id="calls-title">เรียกพนักงาน</h2>
+        <div id="calls" class="calls"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="barista.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+﻿<!doctype html>
+<html lang="th">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>ร้านกาแฟ - เมนู</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Prompt:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<header class="site-header">
+		<div class="site-top">
+			<div class="logo" aria-hidden="true">
+				<svg viewBox="0 0 100 100" class="logo-svg" role="img" aria-label="Coffee logo">
+					<circle cx="50" cy="50" r="48" fill="#6b4f3b" />
+					<path d="M30 55c0 12 40 12 40 0" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none" />
+					<path d="M60 30c6 0 6 8 0 8" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none" />
+				</svg>
+			</div>
+			<div class="shop-info">
+				<h1 class="shop-name" id="shop-name">ร้านกาแฟ Minimal </h1>
+				<p class="shop-address" id="shop-address">123 ถนนสุขสันต์, เมืองตัวอย่าง</p>
+			</div>
+		</div>
+		<div class="header-actions">
+			<div class="lang-switch">
+				<button id="lang-th" class="lang-btn active" type="button">TH</button>
+				<button id="lang-en" class="lang-btn" type="button">EN</button>
+			</div>
+		</div>
+		<div id="table-info" class="table-info">ไม่พบหมายเลขโต๊ะ</div>
+		<div class="announcement" id="announcement">วันนี้ไม่มีค่าจัดส่งเมื่อซื้อครบ 150 บาท</div>
+		<button id="call-staff" class="call-staff" aria-label="เรียกพนักงาน">เรียกพนักงาน</button>
+	</header>
+
+	<div class="controls">
+		<div class="search-wrap">
+			<input id="search" type="search" placeholder="ค้นหาเมนู เช่น กาแฟลาเต้" aria-label="ค้นหาเมนู">
+		</div>
+		<nav class="categories" id="categories" aria-label="แถบหมวดหมู่"></nav>
+	</div>
+
+	<main id="menu-list" class="menu-list" aria-live="polite"></main>
+
+	<div id="cart" class="cart" aria-hidden="true">
+		<button id="cart-btn" class="cart-btn">🛒 <span id="cart-count">0</span></button>
+	</div>
+
+	<div id="cart-overlay" class="cart-overlay" hidden></div>
+	<div id="cart-sheet" class="cart-sheet" aria-hidden="true">
+		<div class="sheet-handle" aria-hidden="true"></div>
+		<div class="sheet-content">
+			<header class="sheet-header">
+				<h2 id="cart-title">ตะกร้าสินค้า</h2>
+				<button id="close-sheet" class="close-btn" aria-label="ปิดตะกร้า">✕</button>
+			</header>
+			<div id="cart-items" class="cart-items"></div>
+			<div class="note-area">
+				<label for="cart-note" id="cart-note-label">หมายเหตุ</label>
+				<textarea id="cart-note" placeholder="เช่น ไม่ใส่น้ำตาล หรือ ขอร้อน"></textarea>
+			</div>
+			<div class="sheet-footer">
+				<div class="total">รวมทั้งหมด: <strong id="cart-total">฿0</strong></div>
+				<div class="sheet-actions">
+					<button id="clear-cart" class="clear-btn">ล้างตะกร้า</button>
+					<button id="place-order" class="order-btn">สั่งซื้อ</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="menu-data.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+	<script src="firebase-config.js"></script>
+	<script src="script.js"></script>
+</body>
+</html>
