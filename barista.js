@@ -10,6 +10,7 @@ const translations = {
 		callsTitle: 'เรียกพนักงาน',
 		orderLabel: 'ออเดอร์',
 		tableLabel: 'โต๊ะ',
+		sessionLabel: 'Session',
 		itemsLabel: 'รายการ',
 		status: {
 			pending: 'รอดำเนินการ',
@@ -17,7 +18,7 @@ const translations = {
 		},
 		toggleStatus: 'เปลี่ยนสถานะ',
 		deleteOrder: 'ลบออเดอร์',
-		callResolve: 'รับทราบแล้ว',
+		callResolve: 'เสร็จสิ้นการทำงาน',
 		emptyOrders: 'ยังไม่มีออเดอร์',
 		emptyOrdersDesc: 'เมื่อมีลูกค้าสั่งซื้อ คิวออเดอร์จะขึ้นที่หน้านี้ทันที',
 		emptyCalls: 'ยังไม่มีการเรียกพนักงาน',
@@ -36,6 +37,157 @@ const el = {
 	callsWrap: document.getElementById('calls'),
 	logoutButton: document.getElementById('logout-button')
 };
+
+const CALL_REQUEST_LABELS = {
+	bill: 'เรียกเช็กบิล',
+	cutlery: 'ขอช้อนส้อม',
+	water: 'เติมน้ำ',
+	issue: 'แจ้งปัญหา'
+};
+
+function getCallRequestLabel(call){
+	return CALL_REQUEST_LABELS[call?.requestType] || call?.requestLabel || 'เรียกพนักงาน';
+}
+
+const ORDER_STATUS_FLOW = ['pending', 'preparing', 'served'];
+const ORDER_STATUS_LABELS = {
+	pending: 'Pending',
+	preparing: 'Preparing',
+	served: 'Served'
+};
+
+function normalizeOrderStatus(status){
+	if(status === 'done') return 'served';
+	if(ORDER_STATUS_FLOW.includes(status)) return status;
+	return 'pending';
+}
+
+function getOrderStatusLabel(status){
+	return ORDER_STATUS_LABELS[normalizeOrderStatus(status)] || ORDER_STATUS_LABELS.pending;
+}
+
+function getOrderStatusClass(status){
+	return normalizeOrderStatus(status);
+}
+
+function getNextOrderStatus(status){
+	const current = normalizeOrderStatus(status);
+	const index = ORDER_STATUS_FLOW.indexOf(current);
+	return ORDER_STATUS_FLOW[(index + 1) % ORDER_STATUS_FLOW.length];
+}
+
+const BILL_TEXT = {
+	title: 'Digital Bill',
+	ordersLabel: 'รายการทั้งหมด',
+	totalLabel: 'ราคารวม',
+	orderUnit: 'ออเดอร์',
+	confirm: 'ยืนยัน',
+	confirmed: 'ยืนยันแล้ว',
+	complete: 'Complete Payment',
+	empty: 'ยังไม่มีรายการในบิลนี้'
+};
+
+const PAYMENT_TEXT = {
+	failed: 'ปิดโต๊ะไม่สำเร็จ',
+	done: 'ปิดโต๊ะเรียบร้อย'
+};
+
+function formatMoney(value){
+	const number = Number(value);
+	const safeNumber = Number.isFinite(number) ? number : 0;
+	return `฿${safeNumber.toLocaleString('th-TH')}`;
+}
+
+function parseOrderTotal(order){
+	if(typeof order?.total === 'number' && Number.isFinite(order.total)){
+		return order.total;
+	}
+
+	const totalText = String(order?.total || '').replace(/[^\d.-]/g, '');
+	const parsed = Number(totalText);
+	if(Number.isFinite(parsed) && parsed > 0){
+		return parsed;
+	}
+
+	if(Array.isArray(order?.items)){
+		return order.items.reduce((sum, item) => {
+			const price = Number(item?.price) || 0;
+			const qty = Number(item?.qty) || 0;
+			return sum + (price * qty);
+		}, 0);
+	}
+
+	return 0;
+}
+
+function getSessionBill(sessionId){
+	const orders = ordersCache
+		.filter(order => order.sessionId === sessionId)
+		.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+	const total = orders.reduce((sum, order) => sum + parseOrderTotal(order), 0);
+	return { orders, total };
+}
+
+function renderBillOrderItems(order){
+	const items = Array.isArray(order?.items) ? order.items : [];
+	if(items.length === 0){
+		return `<div class="bill-empty">${BILL_TEXT.empty}</div>`;
+	}
+
+	return items.map(item => {
+		const lineTotal = (Number(item?.price) || 0) * (Number(item?.qty) || 0);
+		return `
+			<div class="bill-order-item">
+				<span>${item?.name || '-'} x${item?.qty || 0}</span>
+				<span>${formatMoney(lineTotal)}</span>
+			</div>
+		`;
+	}).join('');
+}
+
+function renderBillPanel(call){
+	const bill = getSessionBill(call?.sessionId);
+	const sessionText = call?.sessionLabel || call?.sessionNo ? (call.sessionLabel || `${t('sessionLabel')} #${call.sessionNo}`) : '-';
+	const orderCount = bill.orders.length;
+	return `
+		<div class="bill-panel ${call?.billConfirmed ? 'confirmed' : ''}">
+			<div class="bill-panel-head">
+				<div>
+					<strong>${BILL_TEXT.title}</strong>
+					<div class="bill-session">${sessionText}</div>
+				</div>
+				<div class="bill-chip">${orderCount} ${BILL_TEXT.orderUnit}</div>
+			</div>
+			<div class="bill-summary">
+				<div class="bill-summary-row">
+					<span>${BILL_TEXT.ordersLabel}</span>
+					<strong>${orderCount}</strong>
+				</div>
+				<div class="bill-summary-row">
+					<span>${BILL_TEXT.totalLabel}</span>
+					<strong>${formatMoney(bill.total)}</strong>
+				</div>
+			</div>
+			<div class="bill-orders">
+				${bill.orders.length ? bill.orders.map(order => `
+					<article class="bill-order">
+						<div class="bill-order-head">
+							<div>
+								<strong>${t('orderLabel')} ${order.orderId || '-'}</strong>
+								<div class="small">${formatTime(order.createdAt)}</div>
+							</div>
+							<span>${formatMoney(parseOrderTotal(order))}</span>
+						</div>
+						<div class="bill-order-items">
+							${renderBillOrderItems(order)}
+						</div>
+					</article>
+				`).join('') : `<div class="bill-empty">${BILL_TEXT.empty}</div>`}
+			</div>
+		</div>
+	`;
+}
 
 function t(key){
 	return translations.th?.[key] ?? key;
@@ -102,12 +254,11 @@ function playBeep(){
 
 function sortOrders(orders){
 	return [...orders].sort((a, b) => {
-		const statusRankA = a.status === 'pending' ? 0 : 1;
-		const statusRankB = b.status === 'pending' ? 0 : 1;
-		if(statusRankA !== statusRankB){
-			return statusRankA - statusRankB;
+		const unreadRank = Number(Boolean(b.unread)) - Number(Boolean(a.unread));
+		if(unreadRank !== 0){
+			return unreadRank;
 		}
-		return a.createdAt - b.createdAt;
+		return (b.createdAt || 0) - (a.createdAt || 0);
 	});
 }
 
@@ -123,7 +274,8 @@ function renderOrders(){
 
 	orders.forEach(order => {
 		const div = document.createElement('div');
-		const statusClass = order.status === 'done' ? 'done' : 'pending';
+		const currentStatus = normalizeOrderStatus(order.status);
+		const statusClass = getOrderStatusClass(currentStatus);
 		div.className = 'order' + (order.unread ? ' new' : '');
 		div.innerHTML = `
 			<div class="order-head">
@@ -131,10 +283,14 @@ function renderOrders(){
 					<strong>${t('orderLabel')} ${order.orderId}</strong>
 					<div class="subtext">${formatTime(order.createdAt)}</div>
 				</div>
-				<div class="badge ${statusClass}">${t('status')[order.status]}</div>
+				<div class="order-state">
+					${order.unread ? '<div class="badge live">NEW</div>' : ''}
+					<div class="badge ${statusClass}">${getOrderStatusLabel(currentStatus)}</div>
+				</div>
 			</div>
 			<div class="order-meta">
 				<span>${t('tableLabel')} ${order.table || '-'}</span>
+				${order.sessionLabel || order.sessionNo ? `<span>${order.sessionLabel || `${t('sessionLabel')} #${order.sessionNo}`}</span>` : ''}
 				<span>${order.items.length} ${t('itemsLabel')}</span>
 			</div>
 			<div class="order-items">
@@ -160,12 +316,28 @@ function renderOrders(){
 				<div class="order-total"><strong>${t('totalLabel')}</strong><span>${order.total}</span></div>
 			</div>
 			<div class="order-actions">
-				<button class="toggle" data-id="${order.docId}">${t('toggleStatus')}</button>
+				<select class="status-select" data-id="${order.docId}" aria-label="${t('toggleStatus')}">
+					<option value="pending" ${currentStatus === 'pending' ? 'selected' : ''}>Pending</option>
+					<option value="preparing" ${currentStatus === 'preparing' ? 'selected' : ''}>Preparing</option>
+					<option value="served" ${currentStatus === 'served' ? 'selected' : ''}>Served</option>
+				</select>
 				<button class="delete" data-id="${order.docId}">${t('deleteOrder')}</button>
 			</div>
 		`;
 		el.ordersWrap.appendChild(div);
-		div.querySelector('.toggle').addEventListener('click', () => toggleStatus(order.docId, order.status));
+		div.querySelector('.status-select').addEventListener('change', async (event) => {
+			const nextStatus = event.target.value;
+			event.target.disabled = true;
+			try{
+				await updateOrderStatus(order.docId, nextStatus);
+			}catch(error){
+				console.error('Failed to update order status', error);
+				event.target.value = currentStatus;
+				alert('อัปเดตสถานะไม่สำเร็จ');
+			}finally{
+				event.target.disabled = false;
+			}
+		});
 		div.querySelector('.delete').addEventListener('click', () => deleteOrder(order.docId));
 	});
 	attachOrderImageFallbacks(el.ordersWrap);
@@ -184,23 +356,67 @@ function renderCalls(){
 	calls.forEach(call => {
 		const div = document.createElement('div');
 		div.className = 'call' + (call.unread ? ' new' : '');
+		const isBillRequest = call.requestType === 'bill';
+		const actionButton = isBillRequest
+			? (call.billConfirmed
+				? `<button class="bill-complete" data-id="${call.docId}">${BILL_TEXT.complete}</button>`
+				: `<button class="bill-confirm ${call.billConfirmed ? 'confirmed' : ''}" data-id="${call.docId}" ${call.billConfirmed ? 'disabled' : ''}>${BILL_TEXT.confirm}</button><button class="bill-cancel" data-id="${call.docId}">ยกเลิก</button>`)
+			: `<button class="resolve" data-id="${call.docId}">${t('callResolve')}</button>`;
 		div.innerHTML = `
 			<div class="meta">
 				<div>${t('tableLabel')} ${call.table || '-'}</div>
 				<div class="small">${formatTime(call.createdAt)}</div>
 			</div>
+			<div class="call-type ${isBillRequest && call.billConfirmed ? 'confirmed' : ''}">${getCallRequestLabel(call)}${isBillRequest && call.billConfirmed ? ` - ${BILL_TEXT.confirmed}` : ''}</div>
+			${isBillRequest ? renderBillPanel(call) : ''}
+			${call.sessionLabel || call.sessionNo ? `<div class="call-session">${call.sessionLabel || `${t('sessionLabel')} #${call.sessionNo}`}</div>` : ''}
 			<div class="order-actions">
-				<button class="resolve" data-id="${call.docId}">${t('callResolve')}</button>
+				${actionButton}
 			</div>
 		`;
 		el.callsWrap.appendChild(div);
-		div.querySelector('.resolve').addEventListener('click', () => resolveCall(call.docId));
+		const confirmButton = div.querySelector('.bill-confirm');
+		if(confirmButton){
+			confirmButton.addEventListener('click', () => confirmBill(call.docId));
+		}
+		const cancelButton = div.querySelector('.bill-cancel');
+		if(cancelButton){
+			cancelButton.addEventListener('click', async () => {
+				if(!window.confirm('ยกเลิกคำขอเช็กบิลใช่ไหม?')){
+					return;
+				}
+				await resolveCall(call.docId);
+			});
+		}
+		const completeButton = div.querySelector('.bill-complete');
+		if(completeButton){
+			completeButton.addEventListener('click', async () => {
+				if(!window.confirm('Complete Payment?')){
+					return;
+				}
+				completeButton.disabled = true;
+				try{
+					await completePayment(call.docId);
+					alert(PAYMENT_TEXT.done);
+				}catch(error){
+					console.error('Failed to complete payment', error);
+					alert(PAYMENT_TEXT.failed);
+				}finally{
+					completeButton.disabled = false;
+				}
+			});
+		}
+		const resolveButton = div.querySelector('.resolve');
+		if(resolveButton){
+			resolveButton.addEventListener('click', () => resolveCall(call.docId));
+		}
 	});
 }
 
-async function toggleStatus(orderDocId, currentStatus){
+async function updateOrderStatus(orderDocId, nextStatus){
 	await db.collection('orders').doc(orderDocId).update({
-		status: currentStatus === 'done' ? 'pending' : 'done'
+		status: normalizeOrderStatus(nextStatus),
+		statusUpdatedAt: Date.now()
 	});
 }
 
@@ -210,6 +426,55 @@ async function deleteOrder(orderDocId){
 
 async function resolveCall(callDocId){
 	await db.collection('calls').doc(callDocId).delete();
+}
+
+async function confirmBill(callDocId){
+	await db.collection('calls').doc(callDocId).update({
+		billConfirmed: true,
+		billConfirmedAt: Date.now()
+	});
+}
+
+async function completePayment(callDocId){
+	const callRef = db.collection('calls').doc(callDocId);
+	const callSnap = await callRef.get();
+	if(!callSnap.exists) return;
+
+	const call = callSnap.data() || {};
+	const sessionId = call.sessionId || null;
+	if(!sessionId){
+		await callRef.delete();
+		return;
+	}
+
+	const [ordersSnap, callsSnap] = await Promise.all([
+		db.collection('orders').where('sessionId', '==', sessionId).get(),
+		db.collection('calls').where('sessionId', '==', sessionId).get()
+	]);
+
+	const batch = db.batch();
+	const now = Date.now();
+	const orderIds = new Set();
+	ordersSnap.forEach(doc => orderIds.add(doc.id));
+	orderIds.forEach(orderId => batch.delete(db.collection('orders').doc(orderId)));
+
+	const callIds = new Set([callDocId]);
+	callsSnap.forEach(doc => callIds.add(doc.id));
+	callIds.forEach(callId => batch.delete(db.collection('calls').doc(callId)));
+
+	const sessionDocId = call.sessionDocId || call.sessionId || null;
+	if(sessionDocId){
+		batch.set(db.collection('tableSessions').doc(sessionDocId), {
+			active: false,
+			closedAt: now,
+			updatedAt: now,
+			table: call.table || null,
+			sessionId: sessionDocId,
+			sessionDocId
+		}, { merge: true });
+	}
+
+	await batch.commit();
 }
 
 async function markDocsRead(collectionName, docIds){

@@ -32,7 +32,8 @@
 		</div>
 		<div id="table-info" class="table-info">ไม่พบหมายเลขโต๊ะ</div>
 		<div class="announcement" id="announcement">วันนี้ไม่มีค่าจัดส่งเมื่อซื้อครบ 150 บาท</div>
-		<button id="call-staff" class="call-staff" aria-label="เรียกพนักงาน">เรียกพนักงาน</button>
+		<button id="call-staff" class="call-staff" type="button" aria-label="เรียกพนักงาน">เรียกพนักงาน</button>
+		<button id="order-history-btn" class="history-btn" type="button">ดูรายการสั่ง</button>
 	</header>
 
 	<div class="controls">
@@ -45,7 +46,7 @@
 	<main id="menu-list" class="menu-list" aria-live="polite"></main>
 
 	<div id="cart" class="cart" aria-hidden="true">
-		<button id="cart-btn" class="cart-btn">🛒 <span id="cart-count">0</span></button>
+		<button id="cart-btn" class="cart-btn"><span id="cart-label">ตะกร้า</span> <span id="cart-count">0</span></button>
 	</div>
 
 	<div id="cart-overlay" class="cart-overlay" hidden></div>
@@ -66,6 +67,59 @@
 				<div class="sheet-actions">
 					<button id="clear-cart" class="clear-btn">ล้างตะกร้า</button>
 					<button id="place-order" class="order-btn">สั่งซื้อ</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id="order-history-overlay" class="cart-overlay order-history-overlay" hidden></div>
+	<div id="order-history-sheet" class="cart-sheet order-history-sheet" aria-hidden="true">
+		<div class="sheet-handle" aria-hidden="true"></div>
+		<div class="sheet-content">
+			<header class="sheet-header">
+				<h2 id="order-history-title">ดูรายการสั่ง</h2>
+				<button id="close-order-history" class="close-btn" aria-label="ปิดรายการสั่ง">✕</button>
+			</header>
+			<div id="order-history-session" class="history-session"></div>
+			<div id="order-history-list" class="history-list"></div>
+		</div>
+	</div>
+
+	<div id="call-modal-overlay" class="cart-overlay call-modal-overlay" hidden></div>
+	<div id="call-modal" class="call-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="call-modal-title" aria-describedby="call-modal-hint" hidden>
+		<div class="call-modal-panel">
+			<header class="call-modal-head">
+				<div>
+					<h2 id="call-modal-title">เรียกพนักงาน</h2>
+					<p id="call-modal-subtitle" class="call-modal-subtitle">เลือกประเภทคำขอที่ต้องการ</p>
+				</div>
+				<button id="close-call-modal" class="close-btn" type="button" aria-label="ปิด">✕</button>
+			</header>
+			<p id="call-modal-hint" class="call-modal-hint">แตะหนึ่งตัวเลือกเพื่อส่งคำขอ</p>
+			<div id="call-request-list" class="call-request-list"></div>
+		</div>
+	</div>
+
+	<div id="bill-preview-overlay" class="cart-overlay bill-preview-overlay" hidden></div>
+	<div id="bill-preview-modal" class="bill-preview-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="bill-preview-title" hidden>
+		<div class="bill-preview-panel">
+			<header class="bill-preview-head">
+				<div>
+					<h2 id="bill-preview-title">ยืนยันการเช็กบิล</h2>
+					<p id="bill-preview-subtitle" class="bill-preview-subtitle">ตรวจสอบรายการและยอดรวมก่อนส่งคำขอ</p>
+				</div>
+				<button id="close-bill-preview" class="close-btn" type="button" aria-label="ปิด">ปิด</button>
+			</header>
+			<div id="bill-preview-meta" class="bill-preview-meta"></div>
+			<div id="bill-preview-list" class="bill-preview-list"></div>
+			<div class="bill-preview-footer">
+				<div class="bill-preview-total">
+					<span>ยอดรวม</span>
+					<strong id="bill-preview-total">฿0</strong>
+				</div>
+				<div class="bill-preview-actions">
+					<button id="cancel-bill-preview" class="bill-preview-cancel" type="button">ยกเลิก</button>
+					<button id="confirm-bill-preview" class="bill-preview-confirm" type="button">ยืนยันการเช็กบิล</button>
 				</div>
 			</div>
 		</div>

@@ -53,9 +53,131 @@ const el = {
 	saveBaseUrlBtn: document.getElementById('save-base-url'),
 	qrBaseUrlHint: document.getElementById('qr-base-url-hint'),
 	tableQrList: document.getElementById('table-qr-list'),
+	tableDashboardTitle: document.getElementById('table-dashboard-title'),
+	tableDashboardDesc: document.getElementById('table-dashboard-desc'),
+	tableDashboardList: document.getElementById('table-dashboard-list'),
+	callsTitle: document.getElementById('calls-title'),
+	callsDesc: document.getElementById('calls-desc'),
+	callsWrap: document.getElementById('customer-calls'),
 	saveAnnouncementBtn: document.getElementById('save-announcement'),
 	logoutButton: document.getElementById('logout-button')
 };
+
+let callsCache = [];
+let ordersCache = [];
+let sessionsCache = [];
+
+const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+const TABLE_DASHBOARD_TEXT = {
+	title: 'Dashboard โต๊ะ',
+	desc: 'แสดงสถานะโต๊ะสดแบบเรียลไทม์',
+	emptyStatus: 'EMPTY',
+	activeStatus: 'ACTIVE',
+	billStatus: 'BILL REQUESTED',
+	helpStatus: 'NEED HELP',
+	emptyTitle: 'ยังไม่มีข้อมูลโต๊ะ',
+	emptyDesc: 'ระบบจะแสดงสถานะเมื่อมี session, order หรือคำขอจากลูกค้า',
+	orderLabel: 'ออเดอร์ใหม่',
+	sessionLabel: 'Session',
+};
+
+const CALL_REQUEST_LABELS = {
+	bill: 'เรียกเช็กบิล',
+	cutlery: 'ขอช้อนส้อม',
+	water: 'เติมน้ำ',
+	issue: 'แจ้งปัญหา'
+};
+
+function getCallRequestLabel(call){
+	return CALL_REQUEST_LABELS[call?.requestType] || call?.requestLabel || 'เรียกพนักงาน';
+}
+
+function formatTime(ts){
+	return new Date(ts).toLocaleString('th-TH');
+}
+
+function normalizeTableId(value){
+	return String(value || '').trim();
+}
+
+function normalizeOrderStatus(status){
+	if(status === 'done') return 'served';
+	if(status === 'pending' || status === 'preparing' || status === 'served'){
+		return status;
+	}
+	return 'pending';
+}
+
+function isActiveSession(session){
+	if(!session) return false;
+	const updatedAt = Number(session.updatedAt || session.createdAt || 0);
+	if(!updatedAt) return false;
+	return session.active !== false && (Date.now() - updatedAt) < SESSION_TTL_MS;
+}
+
+function getKnownTables(){
+	const tables = [];
+	const seen = new Set();
+	const addTable = (value) => {
+		const table = normalizeTableId(value);
+		if(!table || seen.has(table)) return;
+		seen.add(table);
+		tables.push(table);
+	};
+
+	TABLE_QR_NUMBERS.forEach(addTable);
+	sessionsCache.forEach(item => addTable(item.table));
+	ordersCache.forEach(item => addTable(item.table));
+	callsCache.forEach(item => addTable(item.table));
+	return tables;
+}
+
+function getTableDashboardInfo(table){
+	const tableId = normalizeTableId(table);
+	const session = [...sessionsCache].find(item => normalizeTableId(item.table) === tableId && isActiveSession(item));
+	const tableOrders = ordersCache.filter(item => normalizeTableId(item.table) === tableId);
+	const tableCalls = callsCache.filter(item => normalizeTableId(item.table) === tableId);
+	const openOrders = tableOrders.filter(item => normalizeOrderStatus(item.status) !== 'served');
+	const issueCall = tableCalls.find(item => item.requestType === 'issue');
+	const billCall = tableCalls.find(item => item.requestType === 'bill');
+	const latestOrder = openOrders
+		.slice()
+		.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
+
+	let statusKey = 'empty';
+	let statusLabel = TABLE_DASHBOARD_TEXT.emptyStatus;
+	let statusClass = 'empty';
+	let statusDetail = '';
+
+	if(issueCall){
+		statusKey = 'need-help';
+		statusLabel = TABLE_DASHBOARD_TEXT.helpStatus;
+		statusClass = 'need-help';
+		statusDetail = issueCall.requestLabel || CALL_REQUEST_LABELS.issue;
+	}else if(billCall){
+		statusKey = 'bill-requested';
+		statusLabel = TABLE_DASHBOARD_TEXT.billStatus;
+		statusClass = 'bill-requested';
+		statusDetail = billCall.requestLabel || CALL_REQUEST_LABELS.bill;
+	}else if(session || openOrders.length || tableCalls.length){
+		statusKey = 'active';
+		statusLabel = TABLE_DASHBOARD_TEXT.activeStatus;
+		statusClass = 'active';
+		statusDetail = session?.sessionLabel || latestOrder?.orderId || '';
+	}
+
+	return {
+		table: tableId,
+		session,
+		openOrders,
+		tableCalls,
+		latestOrder,
+		statusKey,
+		statusLabel,
+		statusClass,
+		statusDetail
+	};
+}
 
 function t(key){
 	return translations.th?.[key] ?? key;
@@ -81,6 +203,10 @@ function applyLanguage(){
 	if(el.menuTitle) el.menuTitle.textContent = t('menuTitle');
 	if(el.qrTitle) el.qrTitle.textContent = t('qrTitle');
 	if(el.qrDesc) el.qrDesc.textContent = t('qrDesc');
+	if(el.tableDashboardTitle) el.tableDashboardTitle.textContent = TABLE_DASHBOARD_TEXT.title;
+	if(el.tableDashboardDesc) el.tableDashboardDesc.textContent = TABLE_DASHBOARD_TEXT.desc;
+	if(el.callsTitle) el.callsTitle.textContent = 'คำขอลูกค้า';
+	if(el.callsDesc) el.callsDesc.textContent = 'คำขอจากลูกค้าจะแสดงแบบเรียลไทม์';
 	if(el.qrBaseUrlLabel) el.qrBaseUrlLabel.textContent = t('qrBaseUrlLabel');
 	if(el.announcementInput) el.announcementInput.placeholder = t('announcementPlaceholder');
 	if(el.saveAnnouncementBtn) el.saveAnnouncementBtn.textContent = t('saveAnnouncement');
@@ -228,9 +354,88 @@ function renderTableQrCodes(){
 	}).join('');
 }
 
+function renderTableDashboard(){
+	if(!el.tableDashboardList) return;
+
+	const tables = getKnownTables();
+	if(tables.length === 0){
+		el.tableDashboardList.innerHTML = `
+			<div class="table-dashboard-empty">
+				<h3>${TABLE_DASHBOARD_TEXT.emptyTitle}</h3>
+				<p>${TABLE_DASHBOARD_TEXT.emptyDesc}</p>
+			</div>
+		`;
+		return;
+	}
+
+	el.tableDashboardList.innerHTML = tables.map(table => {
+		const info = getTableDashboardInfo(table);
+		const summary = info.statusKey === 'need-help' || info.statusKey === 'bill-requested'
+			? info.statusDetail
+			: info.latestOrder
+				? (Array.isArray(info.latestOrder.items)
+					? info.latestOrder.items.slice(0, 2).map(item => `${item.name} x${item.qty}`).join(' • ')
+					: '')
+				: info.session
+					? `${TABLE_DASHBOARD_TEXT.sessionLabel} #${info.session.sessionNo || '-'}`
+					: TABLE_DASHBOARD_TEXT.emptyDesc;
+
+		return `
+			<article class="table-dashboard-card ${info.statusClass}">
+				<div class="table-dashboard-head">
+					<div>
+						<strong>Table ${table}</strong>
+						${info.session ? `<div class="table-dashboard-session">${info.session.sessionLabel || `${TABLE_DASHBOARD_TEXT.sessionLabel} #${info.session.sessionNo}`}</div>` : ''}
+					</div>
+					<div class="table-dashboard-status ${info.statusClass}">${info.statusLabel}</div>
+				</div>
+				<div class="table-dashboard-summary">${summary || TABLE_DASHBOARD_TEXT.emptyDesc}</div>
+				<div class="table-dashboard-meta">
+					<span>${info.openOrders.length} ${TABLE_DASHBOARD_TEXT.orderLabel}</span>
+					<span>${info.tableCalls.length} คำขอ</span>
+				</div>
+			</article>
+		`;
+	}).join('');
+}
+
+function renderCustomerCalls(){
+	if(!el.callsWrap) return;
+
+	const calls = [...callsCache].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+	el.callsWrap.innerHTML = '';
+	if(calls.length === 0){
+		el.callsWrap.innerHTML = `
+			<div class="empty-state">
+				<h3>ยังไม่มีคำขอจากลูกค้า</h3>
+				<p>เมื่อมีลูกค้ากดเรียกพนักงาน รายการจะปรากฏที่นี่</p>
+			</div>
+		`;
+		return;
+	}
+
+	el.callsWrap.innerHTML = calls.map(call => {
+		const isBillRequest = call.requestType === 'bill';
+		return `
+			<article class="call ${call.unread ? 'new' : ''}">
+				<div class="meta">
+					<div>โต๊ะ ${call.table || '-'}</div>
+					<div class="small">${formatTime(call.createdAt)}</div>
+				</div>
+				<div class="call-type ${isBillRequest && call.billConfirmed ? 'confirmed' : ''}">
+					${getCallRequestLabel(call)}${isBillRequest && call.billConfirmed ? ' · ยืนยันแล้ว' : ''}
+				</div>
+				${call.sessionLabel || call.sessionNo ? `<div class="call-session">${call.sessionLabel || `Session #${call.sessionNo}`}</div>` : ''}
+			</article>
+		`;
+	}).join('');
+}
+
 function renderAll(){
 	renderAnnouncementAdmin();
 	renderTableQrCodes();
+	renderTableDashboard();
+	renderCustomerCalls();
 	renderMenuAdmin();
 }
 
@@ -282,6 +487,30 @@ if(el.logoutButton){
 	});
 }
 
+function setupRealtimeListeners(){
+	if(!window.db){
+		renderTableDashboard();
+		renderCustomerCalls();
+		return;
+	}
+
+	db.collection('calls').onSnapshot((snapshot) => {
+		callsCache = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+		renderTableDashboard();
+		renderCustomerCalls();
+	});
+
+	db.collection('orders').onSnapshot((snapshot) => {
+		ordersCache = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+		renderTableDashboard();
+	});
+
+	db.collection('tableSessions').onSnapshot((snapshot) => {
+		sessionsCache = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+		renderTableDashboard();
+	});
+}
+
 window.addEventListener('storage', (event) => {
 	if(event.key === 'announcement' || event.key === 'menu' || event.key === PUBLIC_MENU_URL_KEY){
 		renderAll();
@@ -292,3 +521,4 @@ window.addEventListener('announcement:changed', renderAnnouncementAdmin);
 
 applyLanguage();
 renderAll();
+setupRealtimeListeners();
